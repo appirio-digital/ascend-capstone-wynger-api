@@ -6,6 +6,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
+
 // connect express with middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -13,6 +14,11 @@ app.use(cors());
 
 app.get('/', function home(req, res) {
   res.send('Wynger API');
+});
+
+app.post('/login', function loginUser(req, res) {
+  console.log('req.body: ', req.body);
+  res.json(req.body);
 });
 
 app.post('/authenticate', function authentciateUser(req, res) {
@@ -42,3 +48,24 @@ app.get('/opportunities', function fetchOpportunities(req, res) {
 app.listen(port, function startServer() {
   console.log(`Wynger API running on localhost://${port}`);
 });
+
+// console.log('Executing Salesforce Code...');
+// jsforceConn.login('charles.roth@wynger.com', 'IAmReallyCool1!', function(error, res) {
+//   if (error) {
+//     console.log('ERROR -- jsforceConn.login() callback');
+//     console.error(error);
+//     return;
+//   }
+
+//   console.log("User Information: ", res);
+//   console.log("Eventually do something with it....");
+  
+//   //jsForceConn.query('SELECT Id, Name FROM Account', function(error, response) {
+//   //  if (error) { 
+//   //    console.error(error);
+//   //    return  
+//   //  }
+//   //  console.log(res);
+//   //});
+// });
+
