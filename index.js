@@ -1,10 +1,14 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+// const jsforce = require('jsforce');
 
 
 const app = express();
 const port = process.env.PORT || 3000;
+// const jsforceConn = new jsforce.Connection({
+//   loginUrl: 'https://test.salesforce.com'
+// });
 
 
 // connect express with middleware
@@ -49,23 +53,23 @@ app.listen(port, function startServer() {
   console.log(`Wynger API running on localhost://${port}`);
 });
 
-// console.log('Executing Salesforce Code...');
-// jsforceConn.login('charles.roth@wynger.com', 'IAmReallyCool1!', function(error, res) {
-//   if (error) {
-//     console.log('ERROR -- jsforceConn.login() callback');
-//     console.error(error);
-//     return;
-//   }
+console.log('Executing Salesforce Code...');
+jsforceConn.login('charllie.roth@wynger.com', 'YouReallyCool1!', function(error, res) {
+  if (error) {
+    console.log('ERROR -- jsforceConn.login() callback');
+    console.error(error);
+    return;
+  }
 
-//   console.log("User Information: ", res);
-//   console.log("Eventually do something with it....");
+  console.log("User Information: ", res);
+  console.log("Eventually do something with it....");
   
-//   //jsForceConn.query('SELECT Id, Name FROM Account', function(error, response) {
-//   //  if (error) { 
-//   //    console.error(error);
-//   //    return  
-//   //  }
-//   //  console.log(res);
-//   //});
-// });
+  jsForceConn.query('SELECT Id, Name FROM Account', function(error, response) {
+   if (error) { 
+     console.error(error);
+     return  
+   }
+   console.log(response);
+  });
+});
 
