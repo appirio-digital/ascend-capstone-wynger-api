@@ -12,7 +12,7 @@ function createKnexConnection(connection, searchPath) {
 
 const herkokuConnectClient = createKnexConnection(
   HEROKU_CONNECT.DB_URL,
-  'public,salesforce'
+  'salesforce'
 );
 
 module.exports = {
