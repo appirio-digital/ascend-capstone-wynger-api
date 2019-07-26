@@ -1,114 +1,105 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const cors = require('cors');
+const cors = require('cors'); 
 const { Client } = require('pg');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-const DATABASE_URL = 'postgres://dxnmuevmlozhug:a364781679c64da401652538cefdcc567a12c5a7da820c170a52e00d90bba1a9@ec2-23-21-109-177.compute-1.amazonaws.com:5432/dcb5fr2bqduukd'
 const pgClient = new Client({ 
-  connectionString: DATABASE_URL,
+  connectionString: 'postgres://dxnmuevmlozhug:a364781679c64da401652538cefdcc567a12c5a7da820c170a52e00d90bba1a9@ec2-23-21-109-177.compute-1.amazonaws.com:5432/dcb5fr2bqduukd',
   ssl: true
 });
-pgClient.connect();
 
 // connect express with middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors());
 
-app.get('/', (req, res) => {
-  res.send('Wynger API');
+// attach routes
+app.get('/', (req, res) => { res.send('Wynger API') });
+
+app.get('/accounts', (req, res) => {
+  pgClient
+    .query('SELECT * FROM salesforce.account')
+    .then(accountsData => {
+      res.json({
+        result: 'success',
+        data: accountsData.rows,
+        error: null
+      });
+    })
+    .catch(e => {
+      console.log('GET accounts/ Error: ', e);
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch accounts'
+      });
+    });
 });
 
-app.get('/accounts', async (req, res) => {
-  try {
-    // fetch all accounts
-    const accountData = await pgClient.query('SELECT * FROM salesforce.account');
-    res.json({
-      result: 'success',
-      data: accountData.rows,
-      error: null
+app.use('/cases', (req, res) => {
+  pgClient
+    .query('SELECT * FROM salesforce.case')
+    .then(casesData => {
+      res.json({
+        result: 'success',
+        data: casesData.rows,
+        error: null
+      });
+    })
+    .catch(e => {
+      console.log('GET cases/ Error: ', e);
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch cases'
+      });
     });
-  } catch (error) {
-    console.log('/accounts: Error fetching accounts :: ', error);
-    pgClient.end();
-    res.json({
-      result: 'error',
-      data: null,
-      error: 'Failed to fetch accounts'
-    });
-  }
 });
 
-app.get('/products', async (req, res) => {
-  try {
-    // fetch all products
-    const products = await pgClient.query('SELECT * FROM salesforce.account');
-    res.json({
-      type: 'success',
-      data: products,
-      error: null
+app.use('/contacts', (req, res) => {
+  pgClient
+    .query('SELECT * FROM salesforce.contact')
+    .then(contactsData => {
+      res.json({
+        result: 'success',
+        data: contactsData.rows,
+        error: null
+      });
+    })
+    .catch(e => {
+      console.log('GET contacts/ Error: ', e);
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch contacts'
+      });
     });
-  } catch (error) {
-    console.log('/products: Error fetching products :: ', error);
-    pgClient.end();
-    res.json({
-      result: 'error',
-      data: null,
-      error: 'Failed to fetch products'
-    });
-  }
 });
 
-app.get('/contacts', async (req, res) => {
-  try {
-    // fetch all contacts
-    const contacts = await pgClient.query('SELECT * FROM salesforce.contacts');
-    res.json({
-      type: 'success',
-      data: contacts,
-      error: null
+app.get('/products', (req, res) => {
+  pgClient
+    .query('SELECT * FROM salesforce.product2')
+    .then(productsData => {
+      res.json({
+        result: 'success',
+        data: productsData.rows,
+        error: null
+      });
+    })
+    .catch(e => {
+      console.log('GET products/ Error: ', e);
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch products'
+      });
     });
-  } catch (error) {
-    console.log('/contacts: Error fetching contacts :: ', error);
-    pgClient.end();
-    res.json({
-      result: 'error',
-      data: null,
-      error: 'Failed to fetch contacts'
-    });
-  }
 });
 
-app.get('/cases', async (req, res) => {
-  try {
-    // fetch all cases
-    const cases = await pgClient.query('SELECT * FROM salesforce.cases');
-    res.json({
-      type: 'success',
-      data: cases,
-      error: null
-    });
-  } catch (error) {
-    console.log('/cases: Error fetching cases :: ', error);
-    pgClient.end();
-    res.json({
-      result: 'error',
-      data: null,
-      error: 'Failed to fetch cases'
-    });
-  }
-});
-
-app.listen(port, async () => {
-  try {
-    console.error('Connecting to database...');
-    await pgClient.connect();
-    console.error('Connection sucessful');
-  } catch (error) {
-    console.error('Connection failed');
-  }
+app.listen(port, () => {
+  pgClient.connect();
   console.log(`Wynger API running on http://localhost:${port}`);
 });
