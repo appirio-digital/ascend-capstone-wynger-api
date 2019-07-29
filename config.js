@@ -3,7 +3,7 @@ module.exports = {
     JWT_SECRET: 'BlueBalloons',
     IS_LOCAL_DEV: true
   },
-  HEROKU_CONNECT: {
-    DB_URL: '', // TODO
+  SF: {
+    INSTANCE_URL: 'https://na112.salesforce.com'
   }
 };
