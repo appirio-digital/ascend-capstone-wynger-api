@@ -312,11 +312,11 @@ server.get('/pricebook_entry/:productId', (req, res) => {
       });
     })
     .catch(e => {
-      console.log('GET /pricebooks Error: ', e);
+      console.log('GET /pricebook_entry/:productId Error: ', e);
       res.json({
         result: 'error',
         data: null,
-        error: 'Failed to fetch pricebooks'
+        error: 'Failed to fetch pricebook entries for product'
       });
     });
 });
