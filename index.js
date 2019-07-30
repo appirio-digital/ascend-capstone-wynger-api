@@ -15,7 +15,13 @@ const pgClient = new Client({
 });
 
 // create salesforce connection
+console.log('Creating salesforce connections...');
 const jsforceConn = new jsforce.Connection();
+const jsforceAdminConn = new jsforce.Connection();
+jsforceAdminConn.login('charllie.roth@wynger.com', 'YouReallyCool1!QS58osVbH4Du7wQz9w2bvHQn', (error, userInfo) => {
+  if (error) return console.error('Admin failed to connected');
+  console.log('Admin successfully connected...');
+})
 
 // connect express with middleware
 server.use(bodyParser.urlencoded({ extended: false }));
@@ -91,11 +97,10 @@ server.post('/logout', (req, res) => {
 // 1. Metadata about Accounts Object (Listviews)
 // 2. Accounts owned/accessible by user
 server.get('/account_page', (req, res) => {
-  jsforceConn.query("SELECT Id, Name FROM Account", (error, result) => {
-    if (error) return console.error('Error fetching accounts: ', error);
-    console.log('result.records: ', result.records);
-    console.log('-------------------------------------');
-  });
+  jsforceAdminConn.metadata.read('CustomObject', ['Account'], (error, metadata) => {
+    if (error) return console.error('Failed to fetch meta data...');
+    console.log('Account Metadata: ', metadata);
+  })
 });
 
 // Account Details Page
