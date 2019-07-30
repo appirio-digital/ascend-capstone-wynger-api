@@ -4,6 +4,9 @@ const cors = require('cors');
 const { Client } = require('pg');
 const jsforce = require('jsforce');
 
+// utilities
+const { asyncMetadataRead } = require('./utils');
+
 // instantiate express application
 const server = express();
 const port = process.env.PORT || 3000;
@@ -28,10 +31,10 @@ server.use(bodyParser.urlencoded({ extended: false }));
 server.use(bodyParser.json());
 server.use(cors());
 
-// attach routes to express application
+// Attach routes to express server
 server.get('/', (req, res) => { res.send('Wynger API') });
 
-// login page
+// User Login
 server.post('/login', (req, res) => {
   const username = req.body.username;
   const passwordPlusToken = req.body.passwordPlusToken;
@@ -39,12 +42,12 @@ server.post('/login', (req, res) => {
   jsforceConn.login(username, passwordPlusToken, (error, userInfo) => {
     // error logging user in
     if (error) {
-      res.json({
+      console.error(error);
+      res.status(400).json({
         result: 'error',
         data: null,
         error: 'Failed to login'
       });
-      return console.error(error);
     }
 
     pgClient
@@ -54,7 +57,7 @@ server.post('/login', (req, res) => {
     )
     .then(userData => {
       // user successfully logged in
-      res.json({
+      res.status(200).json({
         result: 'success',
         data: {
           user: userData.rows[0],
@@ -64,7 +67,7 @@ server.post('/login', (req, res) => {
       });
     })
     .catch(e => {
-      res.json({
+      res.status(404).json({
         result: 'error',
         data: null,
         error: 'Failed to fetch user from DB'
@@ -73,10 +76,11 @@ server.post('/login', (req, res) => {
   });
 });
 
+// User Logout
 server.post('/logout', (req, res) => {
   jsforceConn.logout((error) => {
     if (error) {
-      res.json({
+      res.status(400).json({
         result: 'error',
         data: null,
         error: 'Failed to log user out'
@@ -84,7 +88,7 @@ server.post('/logout', (req, res) => {
       return console.error('Failed to log user out: ', error);
     }
     console.log('Logout successful');
-    res.json({
+    res.status(200).json({
       result: 'success',
       data: null,
       error: null
@@ -92,290 +96,152 @@ server.post('/logout', (req, res) => {
   });
 })
 
-
-// Accounts Page
-// 1. Metadata about Accounts Object (Listviews)
-// 2. Accounts owned/accessible by user
-server.get('/account_page', (req, res) => {
-  jsforceAdminConn.metadata.read('CustomObject', ['Account'], (error, metadata) => {
-    if (error) {
-      console.error('Failed to fetch account metadata...');
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch account metadata'
-      });
-      return;
-    }
-    res.json({
+// Accounts Screen -- List Views, Fields
+server.get('/accounts_screen', async (req, res) => {
+  try {
+    const metadata = await asyncMetadataRead(jsforceAdminConn, 'Account');
+    //TODO: Make accounts user specific
+    const accountsData = await pgClient.query('SELECT * FROM salesforce.account');
+    res.status(200).json({
       result: 'success',
-      data: metadata,
+      data: {
+        metadata,
+        accounts: accountsData.rows,
+      },
       error: null
     });
-  });
+  } catch (error) {
+    console.error('ERROR -- GET /accounts_screen: ', error);
+    res.status(400).json({
+      result: 'error',
+      data: null,
+      error: 'Failed to fetch account metadata'
+    });
+  }
 });
 
-// Account Details Page
-// 1. Metadata about Accounts Record Page (Fields, Related Lists) [Contacts, Cases, Opps]
-// 2. Information about individual Account
+// Account Details Screen -- Related Lists (Contacts, Cases, Opportunities)
+server.get('/account_details_screen/:accountId', async (req, res) => {
+  try {
+    const accountId = req.params.accountId;
+    // get contacts for account
+    const contactsData = await pgClient.query(
+      'SELECT * FROM salesforce.contact WHERE accountid = $1',
+      [accountId]
+    );
 
-// Products Page
-// 1. Metadata about Products Object (Listviews)
-// 2. Products owned/accessible by user
+    // get cases for account
+    const casesData = await pgClient.query(
+      'SELECT * FROM salesforce.case WHERE accountid = $1',
+      [accountId]
+    );
 
-// Product Details Page
-// 1. Metadata about Products Record Page (Fields, Related Lists) [Cases, Standard Price, Price Book??]
-// 2. Information about individual Product
+    // get opportunities for account
+    const opsData = await pgClient.query(
+      'SELECT * FROM salesforce.opportunity WHERE accountid = $1',
+      [accountId]
+    );
 
-// Case Details Page
-// 1. Metadata about Case Record Page (Fields, Related Lists) [Case History, Case Comments, Solutions, Notes & Attachments]
-// 2. Information about individual Case
-
-// Opportunity Details Page
-// 1. Metadata about Opportunity Page (Fields, Related Lists) [Products, Notes & Attachments
-
-
-server.get('/accounts', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.account')
-    .then(accountsData => {
-      res.json({
-        result: 'success',
-        data: accountsData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /accounts Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch accounts'
-      });
+    res.status(200).json({
+      contacts: contactsData.rows,
+      cases: casesData.rows,
+      opportunities: opsData.rows,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({
+      result: 'error',
+      data: null,
+      error: 'Failed to fetch account details page data'
+    });
+  }
+})
+
+// Products Screen -- List Views, Fields
+server.get('/products_screen', async (req, res) => {
+  try {
+    const metadata = await asyncMetadataRead(jsforceAdminConn, 'Product');
+    //TODO: Make products user specific
+    const productsData = await pgClient.query('SELECT * FROM salesforce.product');
+    res.status(200).json({
+      result: 'success',
+      data: {
+        metadata,
+        products: productsData.rows,
+      },
+      error: null
+    });
+  } catch (error) {
+    console.error('ERROR -- GET /products_screen: ', error);
+    res.status(400).json({
+      result: 'error',
+      data: null,
+      error: 'ERROR -- GET /products_screen'
+    });
+  }
 });
 
-server.get('/cases', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.case')
-    .then(casesData => {
-      res.json({
-        result: 'success',
-        data: casesData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /cases Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch cases'
-      });
+// Product Details Screen -- Related Lists (Price Book Entries)
+server.get('/product_details_screen/:productId', async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    const pricebookEntryData = await pgClient.query(
+      'SELECT * FROM salesforce.pricebookentry WHERE product2id = $1',
+      [productId]
+    );
+    res.status(200).json({
+      result: 'success',
+      data: pricebookEntryData.rows,
+      error: null
     });
+  } catch (error) {
+    console.error('ERROR -- GET /product_details_screen: ', error);
+    res.status(400).json({
+      result: 'error',
+      data: null,
+      error: 'Failed to fetch pricebook entries for product'
+    });
+  }
 });
 
-server.get('/cases/:accountId', (req, res) => {
-  const accountSfId = req.params.accountId;
-  pgClient
-    .query('SELECT * FROM salesforce.case WHERE accountid = $1', [accountSfId])
-    .then(casesData => {
-      res.json({
-        result: 'success',
-        data: casesData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /cases/:accountId Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch cases'
-      });
+// Case Details Page -- Related Lists (Case History, Solutions)
+// TODO: Retrieve metadata (Fields)
+server.get('/case_details_screen/:caseId', async (req, res) => {
+  try {
+    const caseId = req.params.caseId;
+    // get case history for account
+    const caseHistoryData = await pgClient.query(
+      'SELECT * from salesforce.casehistory WHERE caseid = $1',
+      [caseId]
+    );
+
+    // get solutions for account
+    const solutionsData = await pgClient.query(
+      'SELECT * from salesforce.solution WHERE caseid = $1',
+      [caseId]
+    );
+
+    res.status(200).json({
+      result: 'success',
+      data: {
+        caseHistory: caseHistoryData.rows,
+        solutions: solutionsData.rows
+      },
+      error: null
     });
+  } catch (error) {
+    console.error('ERROR -- GET /case_details_screen: ', error);
+    res.status(400).json({
+      result: 'error',
+      data: null,
+      error: ''
+    })
+  }
 });
 
-server.get('/contacts', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.contact')
-    .then(contactsData => {
-      res.json({
-        result: 'success',
-        data: contactsData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /contacts Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch contacts'
-      });
-    });
-});
-
-server.get('/contacts/:accountId', (req, res) => {
-  const accountSfId = req.params.accountId;
-  pgClient
-    .query('SELECT * FROM salesforce.contact WHERE accountid = $1', [accountSfId])
-    .then(casesData => {
-      res.json({
-        result: 'success',
-        data: casesData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /contacts/:accountId Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch contacts'
-      });
-    });
-});
-
-server.get('/products', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.product2')
-    .then(productsData => {
-      res.json({
-        result: 'success',
-        data: productsData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /products Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch products'
-      });
-    });
-});
-
-server.get('/listviews', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.listview')
-    .then(listViewData => {
-      res.json({
-        result: 'success',
-        data: listViewData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /listviews Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch list views'
-      });
-    });
-});
-
-server.get('/opportunities', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.opportunity')
-    .then(opsData => {
-      res.json({
-        result: 'success',
-        data: opsData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /opportunities Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch opportunities'
-      });
-    });
-});
-
-server.get('/pricebooks', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.pricebook2')
-    .then(priceBookData => {
-      res.json({
-        result: 'success',
-        data: priceBookData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /pricebooks Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch pricebooks'
-      });
-    });
-});
-
-server.get('/pricebook_entry/:productId', (req, res) => {
-  const productId = req.params.productId;
-  pgClient
-    .query('SELECT * FROM salesforce.pricebookentry WHERE product2id = $1', [productId])
-    .then(pricebookEntryData => {
-      res.json({
-        result: 'success',
-        data: pricebookEntryData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /pricebook_entry/:productId Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch pricebook entries for product'
-      });
-    });
-});
-
-server.get('/solutions', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.solution')
-    .then(solutionsData => {
-      res.json({
-        result: 'success',
-        data: solutionsData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /solutions Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch solutions'
-      });
-    });
-});
-
-server.get('/casehistory', (req, res) => {
-  pgClient
-    .query('SELECT * FROM salesforce.casehistory')
-    .then(casehistoryData => {
-      res.json({
-        result: 'success',
-        data: casehistoryData.rows,
-        error: null
-      });
-    })
-    .catch(e => {
-      console.log('GET /casehistory Error: ', e);
-      res.json({
-        result: 'error',
-        data: null,
-        error: 'Failed to fetch case history records'
-      });
-    });
+// Opportunity Details Page -- Retrieve metadata (Fields)
+server.get('/opportunity_details_page/:opId', async (req, res) => {
+  try {} catch (error) {}
 });
 
 server.listen(port, () => {
