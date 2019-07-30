@@ -158,6 +158,27 @@ server.get('/cases', (req, res) => {
     });
 });
 
+server.get('/cases/:accountId', (req, res) => {
+  const accountSfId = req.params.accountId;
+  pgClient
+    .query('SELECT * FROM salesforce.case WHERE accountid = $1', [accountSfId])
+    .then(casesData => {
+      res.json({
+        result: 'success',
+        data: casesData.rows,
+        error: null
+      });
+    })
+    .catch(e => {
+      console.log('GET /cases/:accountId Error: ', e);
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch cases'
+      });
+    });
+});
+
 server.get('/contacts', (req, res) => {
   pgClient
     .query('SELECT * FROM salesforce.contact')
@@ -170,6 +191,27 @@ server.get('/contacts', (req, res) => {
     })
     .catch(e => {
       console.log('GET /contacts Error: ', e);
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch contacts'
+      });
+    });
+});
+
+server.get('/contacts/:accountId', (req, res) => {
+  const accountSfId = req.params.accountId;
+  pgClient
+    .query('SELECT * FROM salesforce.contact WHERE accountid = $1', [accountSfId])
+    .then(casesData => {
+      res.json({
+        result: 'success',
+        data: casesData.rows,
+        error: null
+      });
+    })
+    .catch(e => {
+      console.log('GET /contacts/:accountId Error: ', e);
       res.json({
         result: 'error',
         data: null,
@@ -241,6 +283,27 @@ server.get('/opportunities', (req, res) => {
 server.get('/pricebooks', (req, res) => {
   pgClient
     .query('SELECT * FROM salesforce.pricebook2')
+    .then(priceBookData => {
+      res.json({
+        result: 'success',
+        data: priceBookData.rows,
+        error: null
+      });
+    })
+    .catch(e => {
+      console.log('GET /pricebooks Error: ', e);
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch pricebooks'
+      });
+    });
+});
+
+server.get('/pricebook_entry/:productId', (req, res) => {
+  const productId = req.params.productId;
+  pgClient
+    .query('SELECT * FROM salesforce.pricebookentry2 WHERE product2id = $1', [productId])
     .then(priceBookData => {
       res.json({
         result: 'success',
