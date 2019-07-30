@@ -98,9 +98,21 @@ server.post('/logout', (req, res) => {
 // 2. Accounts owned/accessible by user
 server.get('/account_page', (req, res) => {
   jsforceAdminConn.metadata.read('CustomObject', ['Account'], (error, metadata) => {
-    if (error) return console.error('Failed to fetch meta data...');
-    console.log('Account Metadata: ', metadata);
-  })
+    if (error) {
+      console.error('Failed to fetch account metadata...');
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to fetch account metadata'
+      });
+      return;
+    }
+    res.json({
+      result: 'success',
+      data: metadata,
+      error: null
+    });
+  });
 });
 
 // Account Details Page
