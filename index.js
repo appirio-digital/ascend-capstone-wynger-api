@@ -67,6 +67,25 @@ server.post('/login', (req, res) => {
   });
 });
 
+server.post('/logout', (req, res) => {
+  jsforceConn.logout((error) => {
+    if (error) {
+      res.json({
+        result: 'error',
+        data: null,
+        error: 'Failed to log user out'
+      });
+      return console.error('Failed to log user out: ', error);
+    }
+    console.log('Logout successful');
+    res.json({
+      result: 'success',
+      data: null,
+      error: null
+    });
+  });
+})
+
 
 // Accounts Page
 // 1. Metadata about Accounts Object (Listviews)
@@ -96,11 +115,7 @@ server.get('/account_page', (req, res) => {
 // 2. Information about individual Case
 
 // Opportunity Details Page
-// 1. Metadata about Opportunity Page (Fields, Related Lists) [Products, Notes & Attachments]
-
-
-
-
+// 1. Metadata about Opportunity Page (Fields, Related Lists) [Products, Notes & Attachments
 
 
 server.get('/accounts', (req, res) => {
