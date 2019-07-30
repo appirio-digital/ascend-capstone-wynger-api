@@ -303,11 +303,11 @@ server.get('/pricebooks', (req, res) => {
 server.get('/pricebook_entry/:productId', (req, res) => {
   const productId = req.params.productId;
   pgClient
-    .query('SELECT * FROM salesforce.pricebookentry2 WHERE product2id = $1', [productId])
-    .then(priceBookData => {
+    .query('SELECT * FROM salesforce.pricebookentry WHERE product2id = $1', [productId])
+    .then(pricebookEntryData => {
       res.json({
         result: 'success',
-        data: priceBookData.rows,
+        data: pricebookEntryData.rows,
         error: null
       });
     })
