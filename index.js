@@ -100,12 +100,16 @@ server.post('/logout', (req, res) => {
 server.get('/accounts_screen', async (req, res) => {
   try {
     const metadata = await asyncMetadataRead(jsforceAdminConn, 'Account');
-    //TODO: Make accounts user specific
+    //TODO: Make accounts user specific (access/permissions)
     const accountsData = await pgClient.query('SELECT * FROM salesforce.account');
     res.status(200).json({
       result: 'success',
       data: {
-        metadata,
+        metadata: {
+          fields: metadata.fields,
+          label: metadata.label,
+          listViews: metadata.listViews
+        },
         accounts: accountsData.rows,
       },
       error: null
@@ -143,9 +147,13 @@ server.get('/account_details_screen/:accountId', async (req, res) => {
     );
 
     res.status(200).json({
-      contacts: contactsData.rows,
-      cases: casesData.rows,
-      opportunities: opsData.rows,
+      status: 'success',
+      data: {
+        contacts: contactsData.rows,
+        cases: casesData.rows,
+        opportunities: opsData.rows,
+      },
+      error: null
     });
   } catch (error) {
     console.error(error);
@@ -160,13 +168,17 @@ server.get('/account_details_screen/:accountId', async (req, res) => {
 // Products Screen -- List Views, Fields
 server.get('/products_screen', async (req, res) => {
   try {
-    const metadata = await asyncMetadataRead(jsforceAdminConn, 'Product');
-    //TODO: Make products user specific
-    const productsData = await pgClient.query('SELECT * FROM salesforce.product');
+    const metadata = await asyncMetadataRead(jsforceAdminConn, 'Product2');
+    //TODO: Make products user specific (access/permissions)
+    const productsData = await pgClient.query('SELECT * FROM salesforce.product2');
     res.status(200).json({
       result: 'success',
       data: {
-        metadata,
+        metadata: {
+          fields: metadata.fields,
+          label: metadata.label,
+          listViews: metadata.listViews
+        },
         products: productsData.rows,
       },
       error: null
