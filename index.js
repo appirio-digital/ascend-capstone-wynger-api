@@ -216,7 +216,7 @@ server.get('/product_details_screen/:productId', async (req, res) => {
   }
 });
 
-// Case Details Page -- Related Lists (Case History, Solutions)
+// Case Details Page -- Related Lists (Case History, Case Comments)
 // TODO: Retrieve metadata (Fields)
 server.get('/case_details_screen/:caseId', async (req, res) => {
   try {
@@ -228,8 +228,8 @@ server.get('/case_details_screen/:caseId', async (req, res) => {
     );
 
     // get solutions for account
-    const solutionsData = await pgClient.query(
-      'SELECT * from salesforce.solution WHERE caseid = $1',
+    const caseCommentData = await pgClient.query(
+      'SELECT * from salesforce.casecomment WHERE parentid = $1',
       [caseId]
     );
 
@@ -237,7 +237,7 @@ server.get('/case_details_screen/:caseId', async (req, res) => {
       result: 'success',
       data: {
         caseHistory: caseHistoryData.rows,
-        solutions: solutionsData.rows
+        caseComments: caseCommentData.rows
       },
       error: null
     });
