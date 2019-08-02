@@ -67,7 +67,7 @@ server.post('/login', (req, res) => {
       });
     })
     .catch(e => {
-      res.status(404).json({
+      res.status(400).json({
         result: 'error',
         data: null,
         error: 'Failed to fetch user from DB'
